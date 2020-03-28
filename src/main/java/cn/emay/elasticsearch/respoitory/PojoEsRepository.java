@@ -90,9 +90,9 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 	 * 创建索引,带后缀的
 	 */
 	public void createIndex(String suffix) {
-		
+
 		String indexName = getIndexName(suffix);
-		
+
 		GetIndexRequest request = new GetIndexRequest(indexName);
 		try {
 			boolean isHas = this.getClient().indices().exists(request, RequestOptions.DEFAULT);
@@ -102,7 +102,7 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 		} catch (IOException e1) {
 			throw new IllegalArgumentException(e1);
 		}
-		
+
 		CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName);
 		Map<String, Object> settings = new HashMap<String, Object>();
 		settings.put("number_of_shards", esIndex.shards());
@@ -120,13 +120,13 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 				}
 				builder.startObject(field.getName());
 				builder.field("type", ef.type().getType());
-				if(ef.type().equals(EsFieldType.TEXT)) {
+				if (ef.type().equals(EsFieldType.TEXT)) {
 					builder.startObject("fields");
 					builder.startObject("key");
 					builder.field("type", EsFieldType.KEYWORD.getType());
 					builder.endObject();
 					builder.endObject();
-					builder.field("analyzer","standard");
+					builder.field("analyzer", "standard");
 				}
 				if (ef.type().getFormat() != null) {
 					builder.field("format", ef.type().getFormat());
@@ -141,20 +141,20 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
+
 	/**
 	 * 删除索引
 	 */
 	public void deleteIndex() {
 		deleteIndex(null);
 	}
-	
+
 	/**
 	 * 删除索引,带后缀的
 	 */
 	public void deleteIndex(String suffix) {
 		String indexName = getIndexName(suffix);
-		
+
 		GetIndexRequest request = new GetIndexRequest(indexName);
 		try {
 			boolean isHas = this.getClient().indices().exists(request, RequestOptions.DEFAULT);
@@ -164,7 +164,7 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 		} catch (IOException e1) {
 			throw new IllegalArgumentException(e1);
 		}
-		
+
 		try {
 			DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexName);
 			this.getClient().indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
@@ -342,7 +342,7 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 			BulkItemResponse[] items = bulkResponse.getItems();
 			Arrays.stream(items).forEach(item -> {
 				if (item.isFailed()) {
-					errorIds.add(item.getResponse().getId());
+					errorIds.add(item.getFailure().getId());
 				}
 			});
 		} catch (IOException e) {
