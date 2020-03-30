@@ -137,7 +137,102 @@ public abstract class EsRepository {
 		}
 		return list;
 	}
+	
+	/**
+	 * 根据时间分页查询
+	 */
+	public <T> Page<T> queryTimePage(String sql, boolean isNextPage,String startTime, int start, int limit, TypeToken<List<T>> type) {
+		int count = queryCount(sql);
+		List<T> list = queryListForTimePage(sql, isNextPage, startTime, limit, type);
+		Page<T> page = new Page<T>();
+		page.setNumByStartAndLimit(start, limit, count);
+		page.setList(list);
+		return page;
+	}
 
+	/**
+	 * 分页查询<br/>
+	 * 必须写order
+	 */
+	public <T> List<T> queryListForTimePage(String sql, boolean isNextPage, String startTime, int limit, TypeToken<List<T>> type) {
+		int orderbyindex = sql.toLowerCase().lastIndexOf(" order by");
+		if (orderbyindex <= 0) {
+			throw new IllegalArgumentException(" ES sql 分页查询必须写 order 进行排序 ");
+		}
+		boolean isDesc = sql.trim().toLowerCase().endsWith("desc");
+		boolean isHasAsc = sql.trim().toLowerCase().endsWith("asc");
+		String mainSql = sql.substring(0, orderbyindex);
+		String ordersql = sql.substring(orderbyindex);
+		StringBuffer querySql = new StringBuffer(mainSql);
+		if (startTime != null) {
+			if (sql.contains(" where ")) {
+				querySql.append(" and ");
+			} else {
+				querySql.append(" where ");
+			}
+			if (isDesc) {
+				if (isNextPage) {
+					querySql.append(" createTime < '" + startTime + "'");
+				} else {
+					querySql.append(" createTime > '" + startTime + "'");
+					// 反转order by ，否则查到了第一页的数据
+					String[] items = ordersql.split(" ");
+					for (int i = items.length - 1; i >= 0; i--) {
+						if (items[i].equalsIgnoreCase("desc")) {
+							items[i] = "asc";
+							break;
+						}
+					}
+					String ret = "";
+					for (int i = 0; i < items.length; i++) {
+						ret += items[i] + " ";
+					}
+					ordersql = ret;
+				}
+			} else {
+				if (isNextPage) {
+					querySql.append(" createTime > '" + startTime + "'");
+				} else {
+					querySql.append(" createTime < '" + startTime + "'");
+					// 反转order by ，否则查到了第一页
+					if (isHasAsc) {
+						String[] items = ordersql.split(" ");
+						for (int i = items.length - 1; i >= 0; i--) {
+							if (items[i].equalsIgnoreCase("asc")) {
+								items[i] = "desc";
+								break;
+							}
+						}
+						String ret = "";
+						for (int i = 0; i < items.length; i++) {
+							ret += items[i] + " ";
+						}
+						ordersql = ret;
+					} else {
+						ordersql += " desc ";
+					}
+				}
+			}
+		}
+		querySql.append(ordersql);
+		querySql.append(" limit " + limit);
+		List<T> list = queryList(querySql.toString(), type);
+		if (list != null && list.size() > 0) {
+			if (isDesc) {
+				if (isNextPage) {
+				} else {
+					Collections.reverse(list);
+				}
+			} else {
+				if (isNextPage) {
+				} else {
+					Collections.reverse(list);
+				}
+			}
+		}
+		return list;
+	}
+	
 	/**
 	 * 查询
 	 */
