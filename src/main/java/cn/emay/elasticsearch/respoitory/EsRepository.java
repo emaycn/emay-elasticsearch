@@ -67,7 +67,7 @@ public abstract class EsRepository {
 	}
 
 	/**
-	 * 分页查询<br/>
+	 * 根据时间分页查询<br/>
 	 * 必须写order
 	 */
 	public <T> List<T> queryListForTimePage(String sql, boolean isNextPage, String startTime, int limit, TypeToken<List<T>> type) {
