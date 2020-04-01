@@ -14,6 +14,8 @@ import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
@@ -352,6 +354,33 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 			return SuperResult.rightResult();
 		} else {
 			return SuperResult.badResult("", errorIds.toArray(new String[errorIds.size()]));
+		}
+	}
+	
+	/**
+	 * 根据ID查询
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public E findById(String id) {
+		return findById(null, id);
+	}
+
+	/**
+	 * 根据ID查询
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public E findById(String suffix, String id) {
+		GetRequest get = new GetRequest(this.getIndexName(suffix), id);
+		try {
+			GetResponse getRes = this.getClient().get(get, RequestOptions.DEFAULT);
+			String source = getRes.getSourceAsString();
+			return JsonHelper.fromJson(entityClass, source);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
 		}
 	}
 }

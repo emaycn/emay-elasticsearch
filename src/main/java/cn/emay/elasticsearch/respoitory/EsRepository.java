@@ -44,110 +44,26 @@ public abstract class EsRepository {
 	private final long TIME_8_H = 8L * 60L * 60L * 1000L;
 
 	/**
-	 * 分页查询
+	 * 根据ID分页查询
 	 */
 	public <T> Page<T> queryPage(String sql, boolean isNextPage, Long startId, int start, int limit, TypeToken<List<T>> type) {
-		int count = queryCount(sql);
-		List<T> list = queryListForPage(sql, isNextPage, startId, limit, type);
-		Page<T> page = new Page<T>();
-		page.setNumByStartAndLimit(start, limit, count);
-		page.setList(list);
-		return page;
+		String startValue = startId == null ? null : startId.toString();
+		return queryPage(sql, isNextPage, "id", startValue, start, limit, type);
 	}
 
 	/**
-	 * 分页查询<br/>
-	 * 必须写order
+	 * 根据ID分页查询<br/>
 	 */
 	public <T> List<T> queryListForPage(String sql, boolean isNextPage, Long startId, int limit, TypeToken<List<T>> type) {
-		int orderbyindex = sql.toLowerCase().lastIndexOf(" order by");
-		if (orderbyindex <= 0) {
-			throw new IllegalArgumentException(" ES sql 分页查询必须写 order 进行排序 ");
-		}
-		boolean isDesc = sql.trim().toLowerCase().endsWith("desc");
-		boolean isHasAsc = sql.trim().toLowerCase().endsWith("asc");
-		String mainSql = sql.substring(0, orderbyindex);
-		String ordersql = sql.substring(orderbyindex);
-		StringBuffer querySql = new StringBuffer(mainSql);
-		if (startId != null) {
-			if (sql.contains(" where ")) {
-				querySql.append(" and ");
-			} else {
-				querySql.append(" where ");
-			}
-			if (isDesc) {
-				if (isNextPage) {
-					querySql.append(" id < '" + startId + "'");
-				} else {
-					querySql.append(" id > '" + startId + "'");
-					// 反转order by ，否则查到了第一页的数据
-					String[] items = ordersql.split(" ");
-					for (int i = items.length - 1; i >= 0; i--) {
-						if (items[i].equalsIgnoreCase("desc")) {
-							items[i] = "asc";
-							break;
-						}
-					}
-					String ret = "";
-					for (int i = 0; i < items.length; i++) {
-						ret += items[i] + " ";
-					}
-					ordersql = ret;
-				}
-			} else {
-				if (isNextPage) {
-					querySql.append(" id > '" + startId + "'");
-				} else {
-					querySql.append(" id < '" + startId + "'");
-					// 反转order by ，否则查到了第一页
-					if (isHasAsc) {
-						String[] items = ordersql.split(" ");
-						for (int i = items.length - 1; i >= 0; i--) {
-							if (items[i].equalsIgnoreCase("asc")) {
-								items[i] = "desc";
-								break;
-							}
-						}
-						String ret = "";
-						for (int i = 0; i < items.length; i++) {
-							ret += items[i] + " ";
-						}
-						ordersql = ret;
-					} else {
-						ordersql += " desc ";
-					}
-				}
-			}
-		}
-		querySql.append(ordersql);
-		querySql.append(" limit " + limit);
-		List<T> list = queryList(querySql.toString(), type);
-		if (list != null && list.size() > 0) {
-			if (isDesc) {
-				if (isNextPage) {
-				} else {
-					Collections.reverse(list);
-				}
-			} else {
-				if (isNextPage) {
-				} else {
-					Collections.reverse(list);
-				}
-			}
-		}
-		return list;
+		String startValue = startId == null ? null : startId.toString();
+		return queryListForPage(sql, isNextPage, "id", startValue, limit, type);
 	}
-	
+
 	/**
 	 * 根据时间分页查询
 	 */
-	public <T> Page<T> queryTimePage(String sql, boolean isNextPage,String startTime, int start, int limit, TypeToken<List<T>> type) {
-		int count = queryCount(sql);
-		List<T> list = queryListForTimePage(sql, isNextPage, startTime, limit, type);
-		Page<T> page = new Page<T>();
-		page.setNumByStartAndLimit(start, limit, count);
-		page.setList(list);
-		return page;
+	public <T> Page<T> queryTimePage(String sql, boolean isNextPage, String startTime, int start, int limit, TypeToken<List<T>> type) {
+		return queryPage(sql, isNextPage, "createTime", startTime, start, limit, type);
 	}
 
 	/**
@@ -155,16 +71,39 @@ public abstract class EsRepository {
 	 * 必须写order
 	 */
 	public <T> List<T> queryListForTimePage(String sql, boolean isNextPage, String startTime, int limit, TypeToken<List<T>> type) {
+		return queryListForPage(sql, isNextPage, "createTime", startTime, limit, type);
+	}
+
+	/**
+	 * 分页查询
+	 */
+	public <T> Page<T> queryPage(String sql, boolean isNextPage, String startFieldName, String startValue, int start, int limit, TypeToken<List<T>> type) {
+		int count = queryCount(sql);
+		List<T> list = queryListForPage(sql, isNextPage, startFieldName, startValue, limit, type);
+		Page<T> page = new Page<T>();
+		page.setNumByStartAndLimit(start, limit, count);
+		page.setList(list);
+		return page;
+	}
+
+	/**
+	 * 分页查询<br/>
+	 * 必须写order
+	 */
+	public <T> List<T> queryListForPage(String sql, boolean isNextPage, String startFieldName, String startValue, int limit, TypeToken<List<T>> type) {
 		int orderbyindex = sql.toLowerCase().lastIndexOf(" order by");
 		if (orderbyindex <= 0) {
 			throw new IllegalArgumentException(" ES sql 分页查询必须写 order 进行排序 ");
+		}
+		if (startFieldName == null) {
+			throw new IllegalArgumentException(" startFieldName 不能为空 ");
 		}
 		boolean isDesc = sql.trim().toLowerCase().endsWith("desc");
 		boolean isHasAsc = sql.trim().toLowerCase().endsWith("asc");
 		String mainSql = sql.substring(0, orderbyindex);
 		String ordersql = sql.substring(orderbyindex);
 		StringBuffer querySql = new StringBuffer(mainSql);
-		if (startTime != null) {
+		if (startValue != null) {
 			if (sql.contains(" where ")) {
 				querySql.append(" and ");
 			} else {
@@ -172,9 +111,9 @@ public abstract class EsRepository {
 			}
 			if (isDesc) {
 				if (isNextPage) {
-					querySql.append(" createTime < '" + startTime + "'");
+					querySql.append(" " + startFieldName + " < '" + startValue + "'");
 				} else {
-					querySql.append(" createTime > '" + startTime + "'");
+					querySql.append(" " + startFieldName + " > '" + startValue + "'");
 					// 反转order by ，否则查到了第一页的数据
 					String[] items = ordersql.split(" ");
 					for (int i = items.length - 1; i >= 0; i--) {
@@ -191,9 +130,9 @@ public abstract class EsRepository {
 				}
 			} else {
 				if (isNextPage) {
-					querySql.append(" createTime > '" + startTime + "'");
+					querySql.append(" " + startFieldName + " > '" + startValue + "'");
 				} else {
-					querySql.append(" createTime < '" + startTime + "'");
+					querySql.append(" " + startFieldName + " < '" + startValue + "'");
 					// 反转order by ，否则查到了第一页
 					if (isHasAsc) {
 						String[] items = ordersql.split(" ");
@@ -232,7 +171,7 @@ public abstract class EsRepository {
 		}
 		return list;
 	}
-	
+
 	/**
 	 * 查询
 	 */
