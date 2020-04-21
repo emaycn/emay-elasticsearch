@@ -339,11 +339,13 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 	 */
 	public SuperResult<String[]> bathOper(BulkRequest bulkRequest) {
 		List<String> errorIds = new ArrayList<>();
+		List<String> errorMessages = new ArrayList<>();
 		try {
 			BulkResponse bulkResponse = this.getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
 			BulkItemResponse[] items = bulkResponse.getItems();
 			Arrays.stream(items).forEach(item -> {
 				if (item.isFailed()) {
+					errorMessages.add(item.getFailureMessage());
 					errorIds.add(item.getFailure().getId());
 				}
 			});
@@ -353,10 +355,14 @@ public abstract class PojoEsRepository<E extends java.io.Serializable> extends E
 		if (errorIds.size() == 0) {
 			return SuperResult.rightResult();
 		} else {
-			return SuperResult.badResult("", errorIds.toArray(new String[errorIds.size()]));
+			String errorMessage = "";
+			if (!errorMessages.isEmpty()) {
+				errorMessage = errorMessages.get(0);
+			}
+			return SuperResult.badResult(errorMessage, errorIds.toArray(new String[errorIds.size()]));
 		}
 	}
-	
+
 	/**
 	 * 根据ID查询
 	 * 
