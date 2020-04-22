@@ -33,10 +33,10 @@ import cn.emay.elasticsearch.respoitory.PojoEsRepository;
  */
 public class SmsMessageRepository extends PojoEsRepository<SmsMessage> {
 
-	private String ip = "100.100.10.84";
-	private int port = 9800;
-	private String user = "";
-	private String password = "";
+	private String ip = "127.0.0.1";
+	private int port = 9100;
+	private String user = "elastic";
+	private String password = "Pass";
 
 	private RestHighLevelClient client;
 	private EsDataSource datasource;
@@ -55,13 +55,14 @@ public class SmsMessageRepository extends PojoEsRepository<SmsMessage> {
 		if (user != null && password != null) {
 			final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 			credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
-			client = new RestHighLevelClient(RestClient.builder(new HttpHost(ip, port, "http")).setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-				@Override
-				public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-					httpClientBuilder.disableAuthCaching();
-					return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-				}
-			}));
+			client = new RestHighLevelClient(
+					RestClient.builder(new HttpHost(ip, port, "http")).setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+						@Override
+						public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+							httpClientBuilder.disableAuthCaching();
+							return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+						}
+					}));
 		} else {
 			client = new RestHighLevelClient(RestClient.builder(new HttpHost(ip, port, "http")));
 		}

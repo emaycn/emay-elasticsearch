@@ -10,7 +10,10 @@ import java.util.Map;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
+import com.google.gson.reflect.TypeToken;
+
 import cn.emay.elasticsearch.item.EsInsertItem;
+import cn.emay.utils.db.common.Page;
 
 public class TestMain {
 
@@ -20,12 +23,42 @@ public class TestMain {
 
 		SmsMessageRepository messagerep = new SmsMessageRepository();
 
-		String sql = "select reportCode,count(*) as count from sms_message_20200101 where batchNo = '20200101111230009'  group by reportCode   limit 1";
-		List<Map<String, Object>> queryForList = messagerep.getJdbcTemplate().queryForList(sql, new Object[] {});
-		for (Map<String, Object> map : queryForList) {
-			System.out.println(map);
+		messagerep.createIndex(suffix);
 
-		}
+		testSave(messagerep, suffix);
+		testUpdateByParams(messagerep, suffix);
+		testUpdateByScript(messagerep, suffix);
+
+		String sql = "select * from sms_message_20200101 where mobile = '17898789871' and content.key like '%你好%' limit 1";
+		List<SmsMessage> list = messagerep.queryList(sql, new TypeToken<List<SmsMessage>>() {
+		});
+		list.forEach(message -> {
+			System.out.println(message.toString());
+		});
+
+		// 分页查询sql中必须有order by
+		sql = "select * from sms_message_20200101 where mobile = '17898789871' and content.key like '%你好%' order by id desc";
+		// 第一页
+		// 查出来的id： 1 2 3 4 5 6 7
+		Page<SmsMessage> page = messagerep.queryPage(sql, true, null, 0, 20, new TypeToken<List<SmsMessage>>() {
+		});
+		System.out.println(page);
+		// 上一页 startId = 当前页的第一个id
+		Long startid = 1L;
+		page = messagerep.queryPage(sql, false, startid, 0, 20, new TypeToken<List<SmsMessage>>() {
+		});
+		System.out.println(page);
+		// 下一页 startId = 当前页的最后一个id
+		startid = 7L;
+		page = messagerep.queryPage(sql, true, startid, 0, 20, new TypeToken<List<SmsMessage>>() {
+		});
+		System.out.println(page);
+
+		String id = "12039283920192";
+		messagerep.delete(id);
+
+		messagerep.deleteIndex(suffix);
+
 		messagerep.close();
 	}
 
